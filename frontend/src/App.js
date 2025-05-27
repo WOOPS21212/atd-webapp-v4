@@ -208,7 +208,7 @@ function App() {
         <div className="header-content">
           <div className="logo-section">
             <img src="/logo.png" alt="Logo" className="app-logo" />
-            <h1 className="app-title">ATD RFP Assistant</h1>
+            <h1 className="app-title">Ammunition + ATD Deck Assistant</h1>
           </div>
           <div className="header-info">
             {threadId ? (

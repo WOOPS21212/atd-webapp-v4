@@ -45,8 +45,8 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const [loading, setLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
   const [thumbnails, setThumbnails] = useState([]);
-  const [showThumbnails, setShowThumbnails] = useState(true); // Show by default
-  const [showTOC, setShowTOC] = useState(true); // Table of Contents
+  const [showThumbnails, setShowThumbnails] = useState(true);
+  const [showTOC, setShowTOC] = useState(true);
   const [thumbnailsLoading, setThumbnailsLoading] = useState(false);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -54,8 +54,6 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const [renderTask, setRenderTask] = useState(null);
   const [pageLinks, setPageLinks] = useState([]);
   const overlayRef = useRef(null);
-  const [pageScale, setPageScale] = useState(1);
-  const [canvasRect, setCanvasRect] = useState({ width: 0, height: 0, left: 0, top: 0 });
 
   // Table of Contents data
   const tableOfContents = [
@@ -138,7 +136,6 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
     
     // Merge with existing thumbnails and sort
     setThumbnails(prev => {
-      // Only add new thumbnails that don't already exist
       const existingPageNums = new Set(prev.map(t => t.pageNum));
       const newThumbs = thumbs.filter(t => !existingPageNums.has(t.pageNum));
       
@@ -235,19 +232,6 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
         const task = page.render(renderContext);
         setRenderTask(task);
         await task.promise;
-        
-        // Store page scale and canvas rect for overlay positioning
-        setPageScale(pageScale);
-        const canvasElement = canvasRef.current;
-        if (canvasElement) {
-          const rect = canvasElement.getBoundingClientRect();
-          setCanvasRect({
-            width: rect.width,
-            height: rect.height,
-            left: rect.left,
-            top: rect.top
-          });
-        }
         
         // Extract PDF annotations (links)
         try {
@@ -444,47 +428,51 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
               <div className="loading-spinner small"></div>
             </div>
           )}
-          <canvas ref={canvasRef} className="pdf-canvas" />
           
-          {/* Links Overlay */}
-          {pageLinks.length > 0 && (
-            <div className="links-overlay" ref={overlayRef}>
-              {pageLinks.map((link) => (
-                <div
-                  key={link.id}
-                  className={`link-overlay ${link.type}`}
-                  data-video-type={link.videoType}
-                  style={{
-                    position: 'absolute',
-                    left: `${link.rect.x}px`,
-                    top: `${link.rect.y}px`,
-                    width: `${link.rect.width}px`,
-                    height: `${link.rect.height}px`,
-                  }}
-                  onClick={() => handleLinkClick(link)}
-                  title={link.tooltip}
-                >
-                  {link.isVideo && (
-                    <div className="video-play-overlay">
-                      <div className="play-button">
-                        <span className="play-icon">▶</span>
+          {/* Canvas and Overlay Container */}
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <canvas ref={canvasRef} className="pdf-canvas" />
+            
+            {/* Links Overlay */}
+            {pageLinks.length > 0 && (
+              <div className="links-overlay" ref={overlayRef}>
+                {pageLinks.map((link) => (
+                  <div
+                    key={link.id}
+                    className={`link-overlay ${link.type}`}
+                    data-video-type={link.videoType}
+                    style={{
+                      position: 'absolute',
+                      left: `${link.rect.x}px`,
+                      top: `${link.rect.y}px`,
+                      width: `${link.rect.width}px`,
+                      height: `${link.rect.height}px`,
+                    }}
+                    onClick={() => handleLinkClick(link)}
+                    title={link.tooltip}
+                  >
+                    {link.isVideo && (
+                      <div className="video-play-overlay">
+                        <div className="play-button">
+                          <span className="play-icon">▶</span>
+                        </div>
+                        <div className="video-type-badge">
+                          {link.videoType === 'youtube' && '📺'}
+                          {link.videoType === 'vimeo' && '🎬'}
+                          {link.videoType === 'video-file' && '🎥'}
+                          {link.videoType === 'loom' && '🔗'}
+                          {link.videoType === 'wistia' && '💼'}
+                          {link.videoType === 'dailymotion' && '📺'}
+                          {link.videoType === 'video' && '📹'}
+                          {!link.videoType && '📹'}
+                        </div>
                       </div>
-                      <div className="video-type-badge">
-                        {link.videoType === 'youtube' && '📺'}
-                        {link.videoType === 'vimeo' && '🎬'}
-                        {link.videoType === 'video-file' && '🎥'}
-                        {link.videoType === 'loom' && '🔗'}
-                        {link.videoType === 'wistia' && '💼'}
-                        {link.videoType === 'dailymotion' && '📺'}
-                        {link.videoType === 'video' && '📹'}
-                        {!link.videoType && '📹'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
