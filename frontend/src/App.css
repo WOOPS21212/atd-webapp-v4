@@ -323,7 +323,66 @@
   font-size: 0.8rem;
   padding: 1rem;
   text-align: center;
-} body {
+}
+
+/* Table of Contents Styles */
+.pdf-toc {
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #333;
+  padding: 1rem;
+}
+
+.toc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.5rem;
+}
+
+.toc-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #888;
+  color: #fff;
+  border: 1px solid #666;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.toc-item:hover {
+  background-color: #999;
+  border-color: #c46539;
+}
+
+.toc-item.active {
+  background-color: #c46539;
+  color: #000;
+  border-color: #c46539;
+}
+
+.toc-num {
+  font-weight: 600;
+  min-width: 2rem;
+}
+
+.toc-title {
+  flex: 1;
+}
+
+.toc-page {
+  font-size: 0.8rem;
+  color: #ccc;
+}
+
+.toc-item.active .toc-page {
+  color: #333;
+}
+
+body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #121212;
