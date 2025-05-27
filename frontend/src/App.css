@@ -350,7 +350,7 @@
   cursor: pointer;
   transition: all 0.2s;
   text-align: left;
-  font-size: 0.45rem;
+  font-size: 9px;
 }
 
 .toc-item:hover {
