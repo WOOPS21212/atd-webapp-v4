@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFileAlt, faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-svg-icons';
 import PDFViewer from './PDFViewer';
 import questionSections from './questionData';
 import './App.css';
@@ -34,8 +36,36 @@ function App() {
   const [pdfPage, setPdfPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSections, setShowSections] = useState(true);
   const messagesEndRef = useRef(null);
   const pdfUrl = '/ATD_x_Ammunition_May Responses_Read-Ahead.pdf';
+
+  // Table of Contents data
+  const tableOfContents = [
+    { num: '01', title: 'Agency overview', page: 5 },
+    { num: '02', title: 'Strategy', page: 10 },
+    { num: '03', title: 'Innovation', page: 38 },
+    { num: '04', title: 'Technology', page: 71 },
+    { num: '05', title: 'Content', page: 96 },
+    { num: '06', title: 'Advertising / SEM / SEO', page: 139 },
+    { num: '07', title: 'Web', page: 164 },
+    { num: '08', title: 'Events', page: 193 },
+    { num: '09', title: 'Public Relations', page: 208 },
+    { num: '10', title: 'Crisis Management', page: 235 },
+    { num: '11', title: 'Production', page: 250 },
+    { num: '12', title: 'Management Fee and Additional Fee', page: 277 },
+    { num: '13', title: 'Account Management', page: 287 },
+    { num: '14', title: 'Reporting & Analytics', page: 312 },
+    { num: '15', title: 'Team & Chem / Culture', page: 329 },
+    { num: '16', title: 'SME Representation (PR, Social, Strategy)', page: 353 },
+    { num: '17', title: 'Social Media', page: 434 },
+    { num: '18', title: 'Media Buying', page: 488 },
+  ];
+
+  // Go to specific page function
+  const goToPage = (page) => {
+    setPdfPage(page);
+  };
 
   // Handle page change from PDF viewer
   const handlePdfPageChange = (newPage) => {
@@ -207,8 +237,10 @@ function App() {
       <header className="app-header">
         <div className="header-content">
           <div className="logo-section">
-            <img src="/logo.png" alt="Logo" className="app-logo" />
-            <h1 className="app-title">Ammunition + ATD Deck Assistant</h1>
+            <img src="/ammunition logo wide.svg" alt="Ammunition Logo" className="app-logo ammunition-logo" />
+            <FontAwesomeIcon icon={faPlus} className="logo-plus-icon" />
+            <img src="/logo.png" alt="ATD Logo" className="app-logo atd-logo" />
+            <h1 className="app-title">Deck Assistant</h1>
           </div>
           <div className="header-info">
             {threadId ? (
@@ -220,7 +252,7 @@ function App() {
         </div>
       </header>
       
-      <div className="app-layout">
+      <div className={`app-layout ${drawerOpen ? 'drawer-open' : ''}`}>
         {/* Question Drawer */}
         <div className={`question-drawer ${drawerOpen ? 'open' : ''}`}>
           <div className="drawer-content">
@@ -304,10 +336,44 @@ function App() {
           </div>
         </div>
         <div className="pdf-panel">
+          {/* Section Navigation */}
+          <div className="section-navigation">
+            <div className="section-navigation-header">
+              <FontAwesomeIcon icon={faFileAlt} className="section-icon" />
+              <h3>Deck Sections</h3>
+              <button 
+                className="section-toggle-btn"
+                onClick={() => setShowSections(!showSections)}
+                title={showSections ? "Hide sections" : "Show sections"}
+              >
+                <FontAwesomeIcon icon={showSections ? faChevronLeft : faChevronRight} />
+              </button>
+            </div>
+            {showSections && (
+              <div className="section-grid">
+                {tableOfContents.map((section) => (
+                  <button
+                    key={section.num}
+                    className={`section-item ${pdfPage >= section.page && 
+                      (tableOfContents.findIndex(s => s.num === section.num) === tableOfContents.length - 1 || 
+                       pdfPage < tableOfContents[tableOfContents.findIndex(s => s.num === section.num) + 1]?.page) 
+                      ? 'active' : ''}`}
+                    onClick={() => goToPage(section.page)}
+                  >
+                    <span className="section-num">{section.num}</span>
+                    <span className="section-title">{section.title}</span>
+                    <span className="section-page">p.{section.page}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <PDFViewer 
             pdfUrl={pdfUrl}
             currentPage={pdfPage}
             onPageChange={handlePdfPageChange}
+            showSections={showSections}
           />
         </div>
       </div>
