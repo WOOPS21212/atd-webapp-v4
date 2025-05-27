@@ -70,7 +70,7 @@ function App() {
     setMessages(updatedMessagesForApi); // Update UI with user message
     setInput('');
 
-    const response = await fetch('http://localhost:5000/chat', { // Changed to /chat
+    const response = await fetch('https://atd-webapp-v4.onrender.com/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ threadId, messages: updatedMessagesForApi }), // Send threadId and updated messages
