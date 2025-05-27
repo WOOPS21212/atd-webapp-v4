@@ -5,6 +5,9 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import './App.css';
 
+// Use environment variable or default to localhost for development
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 // Helper function to fix list formatting
 const fixListFormatting = (text) => {
   if (typeof text !== 'string') return text;
@@ -28,7 +31,7 @@ function App() {
   const [threadId, setThreadId] = useState(null); // Added threadId state
   const [pdfPage, setPdfPage] = useState(1); // Added state for PDF page
   const messagesEndRef = useRef(null);
-  const pdfBaseUrl = '/ATD-RFP-Response.pdf'; // Define base URL for PDF
+  const pdfBaseUrl = '/ATD_x_Ammunition_May Responses_Read-Ahead.pdf'; // Updated PDF
 
   let scrollTimeout = useRef(null); // Using useRef for timeout ID to persist across renders
 
@@ -56,7 +59,7 @@ function App() {
     // Fetch threadId on component mount
     const fetchThreadId = async () => {
       try {
-        const res = await fetch('https://atd-webapp-v4.onrender.com/init', { method: 'POST' });
+        const res = await fetch(`${API_URL}/init`, { method: 'POST' });
         if (!res.ok) {
           throw new Error(`Failed to initialize thread: ${res.status}`);
         }
@@ -94,7 +97,7 @@ function App() {
     setMessages(updatedMessagesForApi); // Update UI with user message
     setInput('');
 
-    const response = await fetch('https://atd-webapp-v4.onrender.com/chat', {
+    const response = await fetch(`${API_URL}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ threadId, messages: updatedMessagesForApi }), // Send threadId and updated messages
@@ -146,51 +149,70 @@ function App() {
   };
 
   return (
-    <div className="app-layout">
-      <div className="chat-panel">
-        <div className="chat-container">
-          <div className="chat-box">
-            {messages.map((msg, index) => (
-              <div key={index} className={msg.role === 'user' ? 'user-message' : 'assistant-message'}>
-                <strong>{msg.role === 'user' ? 'You' : 'Assistant'}: </strong><br />
-                {msg.role === 'assistant' ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw, rehypeSanitize]}
-                    components={{
-                      ul: (props) => <ul style={{ paddingLeft: '1.5em', marginBottom: '1em' }} {...props} />,
-                      ol: (props) => <ol style={{ paddingLeft: '1.5em', marginBottom: '1em' }} {...props} />,
-                      li: (props) => <li style={{ marginBottom: '0.5em' }} {...props} />,
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
-                ) : (
-                  <span>{msg.content}</span>
-                )}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-content">
+          <div className="logo-section">
+            {/* Replace src with your logo path */}
+            <img src="/logo.png" alt="Logo" className="app-logo" />
+            <h1 className="app-title">ATD RFP Assistant</h1>
           </div>
-          <form onSubmit={handleSubmit} className="chat-input">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask something..."
-            />
-            <button type="submit">Send</button>
-          </form>
+          <div className="header-info">
+            {threadId ? (
+              <span className="thread-status">Connected</span>
+            ) : (
+              <span className="thread-status connecting">Connecting...</span>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="pdf-panel">
-        <iframe
-          id="pdf-viewer" // Added ID
-          key={pdfPage} // Added key to force re-render on page change if needed, though src change should suffice
-          src={`${pdfBaseUrl}#page=${pdfPage}`} // Dynamically set src
-          title="ATD RFP"
-          className="pdf-iframe"
-        />
+      </header>
+      
+      <div className="app-layout">
+        <div className="chat-panel">
+          <div className="chat-container">
+            <div className="chat-box">
+              {messages.map((msg, index) => (
+                <div key={index} className={msg.role === 'user' ? 'user-message' : 'assistant-message'}>
+                  <strong>{msg.role === 'user' ? 'You' : 'Assistant'}: </strong><br />
+                  {msg.role === 'assistant' ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                      components={{
+                        ul: (props) => <ul style={{ paddingLeft: '1.5em', marginBottom: '1em' }} {...props} />,
+                        ol: (props) => <ol style={{ paddingLeft: '1.5em', marginBottom: '1em' }} {...props} />,
+                        li: (props) => <li style={{ marginBottom: '0.5em' }} {...props} />,
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    <span>{msg.content}</span>
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+            <form onSubmit={handleSubmit} className="input-row">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about the RFP..."
+              />
+              <button type="submit">Send</button>
+            </form>
+          </div>
+        </div>
+        <div className="pdf-panel">
+          <iframe
+            id="pdf-viewer" // Added ID
+            key={pdfPage} // Added key to force re-render on page change if needed, though src change should suffice
+            src={`${pdfBaseUrl}#page=${pdfPage}`} // Dynamically set src
+            title="ATD RFP"
+            className="pdf-iframe"
+          />
+        </div>
       </div>
     </div>
   );
