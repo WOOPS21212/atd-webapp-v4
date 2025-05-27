@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist/webpack';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faImages } from '@fortawesome/free-solid-svg-icons';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -286,7 +288,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
     if (scale === 'page-width') {
       setScale(1.2);
     } else {
-      setScale(prev => Math.min(prev + 0.2, 3));
+      setScale(prev => prev + 0.2); // 🚫 No upper limit
     }
   };
 
@@ -355,7 +357,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
             className={`pdf-toggle-btn ${showThumbnails ? 'active' : ''}`}
             title="Toggle thumbnails"
           >
-            🖼️ Thumbnails
+            <FontAwesomeIcon icon={faImages} />
           </button>
         </div>
       </div>
@@ -379,52 +381,33 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
             </div>
           )}
           
-          {/* Canvas and Overlay Container */}
+          {/* Canvas Container */}
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <canvas ref={canvasRef} className="pdf-canvas" />
-            
-            {/* Links Overlay */}
-            {pageLinks.length > 0 && (
-              <div className="links-overlay" ref={overlayRef}>
-                {pageLinks.map((link) => (
-                  <div
-                    key={link.id}
-                    className={`link-overlay ${link.type}`}
-                    data-video-type={link.videoType}
-                    style={{
-                      position: 'absolute',
-                      left: `${link.rect.x}px`,
-                      top: `${link.rect.y}px`,
-                      width: `${link.rect.width}px`,
-                      height: `${link.rect.height}px`,
-                    }}
-                    onClick={() => handleLinkClick(link)}
-                    title={link.tooltip}
-                  >
-                    {link.isVideo && (
-                      <div className="video-play-overlay">
-                        <div className="play-button">
-                          <span className="play-icon">▶</span>
-                        </div>
-                        <div className="video-type-badge">
-                          {link.videoType === 'youtube' && '📺'}
-                          {link.videoType === 'vimeo' && '🎬'}
-                          {link.videoType === 'video-file' && '🎥'}
-                          {link.videoType === 'loom' && '🔗'}
-                          {link.videoType === 'wistia' && '💼'}
-                          {link.videoType === 'dailymotion' && '📺'}
-                          {link.videoType === 'video' && '📹'}
-                          {!link.videoType && '📹'}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Page Links Section */}
+      {pageLinks.length > 0 && (
+        <div className="pdf-links-container">
+          <div className="pdf-links-header">
+            <h4>🔗 Links on this page</h4>
+          </div>
+          <div className="pdf-links-list">
+            {pageLinks.map((link) => (
+              <div
+                key={link.id}
+                className={`pdf-link-item ${link.type}`}
+                onClick={() => handleLinkClick(link)}
+                title={link.tooltip}
+              >
+                <div className="link-url">{link.url}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Thumbnail Strip */}
       {showThumbnails && (
@@ -443,7 +426,9 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
                     className={`thumbnail ${thumb.pageNum === pageNumber ? 'active' : ''}`}
                     onClick={() => goToPage(thumb.pageNum)}
                   >
-                    <img src={thumb.dataUrl} alt={`Page ${thumb.pageNum}`} />
+                    <div className="thumb-viewport">
+                      <img src={thumb.dataUrl} alt={`Page ${thumb.pageNum}`} />
+                    </div>
                     <span className="thumb-page-num">{thumb.pageNum}</span>
                   </div>
                 ))}

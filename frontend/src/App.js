@@ -291,11 +291,21 @@ function App() {
           {/* Drawer Tab */}
           <button 
             className="drawer-tab" 
-            onClick={() => setDrawerOpen(!drawerOpen)}
+            onClick={() => {
+              if (!drawerOpen && !localStorage.getItem('questionDrawerHintSeen')) {
+                localStorage.setItem('questionDrawerHintSeen', 'true');
+              }
+              setDrawerOpen(!drawerOpen);
+            }}
             aria-label="Toggle question drawer"
           >
             <span className="tab-text">Questions</span>
             <span className="tab-arrow">{drawerOpen ? '◀' : '▶'}</span>
+            {!localStorage.getItem('questionDrawerHintSeen') && (
+              <div className="drawer-hint-bubble">
+                💡 Click here for starter questions!
+              </div>
+            )}
           </button>
         </div>
         
