@@ -13,11 +13,34 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const [pageLoading, setPageLoading] = useState(false);
   const [thumbnails, setThumbnails] = useState([]);
   const [showThumbnails, setShowThumbnails] = useState(true); // Show by default
+  const [showTOC, setShowTOC] = useState(false); // Table of Contents
   const [thumbnailsLoading, setThumbnailsLoading] = useState(false);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const thumbnailContainerRef = useRef(null);
   const [renderTask, setRenderTask] = useState(null);
+
+  // Table of Contents data
+  const tableOfContents = [
+    { num: '01', title: 'Agency overview', page: 5 },
+    { num: '02', title: 'Strategy', page: 10 },
+    { num: '03', title: 'Innovation', page: 38 },
+    { num: '04', title: 'Technology', page: 71 },
+    { num: '05', title: 'Content', page: 96 },
+    { num: '06', title: 'Advertising / SEM / SEO', page: 139 },
+    { num: '07', title: 'Web', page: 164 },
+    { num: '08', title: 'Events', page: 193 },
+    { num: '09', title: 'Public Relations', page: 208 },
+    { num: '10', title: 'Crisis Management', page: 235 },
+    { num: '11', title: 'Production', page: 250 },
+    { num: '12', title: 'Management Fee and Additional Fee', page: 277 },
+    { num: '13', title: 'Account Management', page: 287 },
+    { num: '14', title: 'Reporting & Analytics', page: 312 },
+    { num: '15', title: 'Team & Chem / Culture', page: 329 },
+    { num: '16', title: 'SME Representation (PR, Social, Strategy)', page: 353 },
+    { num: '17', title: 'Social Media', page: 434 },
+    { num: '18', title: 'Media Buying', page: 488 },
+  ];
 
   // Generate thumbnails for visible range around current page
   const generateVisibleThumbnails = useCallback(async () => {
@@ -273,14 +296,43 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
         
         <div className="pdf-controls-group">
           <button 
+            onClick={() => setShowTOC(!showTOC)} 
+            className={`pdf-toggle-btn ${showTOC ? 'active' : ''}`}
+            title="Toggle sections"
+          >
+            📑 Sections
+          </button>
+          <button 
             onClick={() => setShowThumbnails(!showThumbnails)} 
             className={`pdf-toggle-btn ${showThumbnails ? 'active' : ''}`}
             title="Toggle thumbnails"
           >
-            📑 Thumbnails
+            🖼️ Thumbnails
           </button>
         </div>
       </div>
+
+      {/* Table of Contents */}
+      {showTOC && (
+        <div className="pdf-toc">
+          <div className="toc-grid">
+            {tableOfContents.map((section) => (
+              <button
+                key={section.num}
+                className={`toc-item ${pageNumber >= section.page && 
+                  (tableOfContents.findIndex(s => s.num === section.num) === tableOfContents.length - 1 || 
+                   pageNumber < tableOfContents[tableOfContents.findIndex(s => s.num === section.num) + 1]?.page) 
+                  ? 'active' : ''}`}
+                onClick={() => goToPage(section.page)}
+              >
+                <span className="toc-num">{section.num}</span>
+                <span className="toc-title">{section.title}</span>
+                <span className="toc-page">p.{section.page}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* PDF Canvas with Zoom Controls */}
       <div className="pdf-canvas-wrapper">
