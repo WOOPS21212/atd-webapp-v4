@@ -28,7 +28,7 @@ function App() {
   const [threadId, setThreadId] = useState(null); // Added threadId state
   const [pdfPage, setPdfPage] = useState(1); // Added state for PDF page
   const messagesEndRef = useRef(null);
-  const pdfBaseUrl = '/ATD x Ammunition _ May Responses _ Read-Ahead.pdf'; // Define base URL for PDF
+  const pdfBaseUrl = '/ATD-RFP-Response.pdf'; // Define base URL for PDF
 
   let scrollTimeout = useRef(null); // Using useRef for timeout ID to persist across renders
 
