@@ -4,6 +4,39 @@ import * as pdfjsLib from 'pdfjs-dist/webpack';
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
+// Video URL detection patterns
+const VIDEO_PATTERNS = [
+  /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/,
+  /vimeo\.com\/(\d+)/,
+  /(?:dailymotion\.com\/video\/)([a-zA-Z0-9_-]+)/,
+  /(?:wistia\.com\/medias\/)([a-zA-Z0-9_-]+)/,
+  /(?:loom\.com\/share\/)([a-zA-Z0-9_-]+)/,
+  /\.(?:mp4|avi|mov|wmv|flv|webm|mkv)(?:\?|$)/i,
+  /video/i // Any URL containing "video"
+];
+
+// Helper function to determine if a URL is a video link
+const isVideoLink = (url) => {
+  return VIDEO_PATTERNS.some(pattern => pattern.test(url));
+};
+
+// Helper function to determine video type
+const getVideoType = (url) => {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+  if (url.includes('vimeo.com')) return 'vimeo';
+  if (url.includes('dailymotion.com')) return 'dailymotion';
+  if (url.includes('wistia.com')) return 'wistia';
+  if (url.includes('loom.com')) return 'loom';
+  if (/\.(?:mp4|avi|mov|wmv|flv|webm|mkv)/i.test(url)) return 'video-file';
+  if (/video/i.test(url)) return 'video';
+  return 'unknown';
+};
+
+// Helper function to get link type for styling
+const getLinkType = (url) => {
+  return isVideoLink(url) ? 'video' : 'regular';
+};
+
 const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const [pdf, setPdf] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
@@ -19,6 +52,10 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const containerRef = useRef(null);
   const thumbnailContainerRef = useRef(null);
   const [renderTask, setRenderTask] = useState(null);
+  const [pageLinks, setPageLinks] = useState([]);
+  const overlayRef = useRef(null);
+  const [pageScale, setPageScale] = useState(1);
+  const [canvasRect, setCanvasRect] = useState({ width: 0, height: 0, left: 0, top: 0 });
 
   // Table of Contents data
   const tableOfContents = [
@@ -76,9 +113,6 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
     const sortedPages = Array.from(pagesToGenerate).sort((a, b) => a - b);
     
     for (const i of sortedPages) {
-      // Skip if we already have this thumbnail
-      if (thumbnails.some(t => t.pageNum === i)) continue;
-      
       try {
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 0.15 });
@@ -104,13 +138,18 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
     
     // Merge with existing thumbnails and sort
     setThumbnails(prev => {
-      const combined = [...prev, ...thumbs];
-      const unique = Array.from(new Map(combined.map(item => [item.pageNum, item])).values());
-      return unique.sort((a, b) => a.pageNum - b.pageNum);
+      // Only add new thumbnails that don't already exist
+      const existingPageNums = new Set(prev.map(t => t.pageNum));
+      const newThumbs = thumbs.filter(t => !existingPageNums.has(t.pageNum));
+      
+      if (newThumbs.length === 0) return prev;
+      
+      const combined = [...prev, ...newThumbs];
+      return combined.sort((a, b) => a.pageNum - b.pageNum);
     });
     
     setThumbnailsLoading(false);
-  }, [pdf, pageNumber, thumbnails, thumbnailsLoading]);
+  }, [pdf, pageNumber, thumbnailsLoading]);
 
   // Load PDF document
   useEffect(() => {
@@ -196,6 +235,55 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
         const task = page.render(renderContext);
         setRenderTask(task);
         await task.promise;
+        
+        // Store page scale and canvas rect for overlay positioning
+        setPageScale(pageScale);
+        const canvasElement = canvasRef.current;
+        if (canvasElement) {
+          const rect = canvasElement.getBoundingClientRect();
+          setCanvasRect({
+            width: rect.width,
+            height: rect.height,
+            left: rect.left,
+            top: rect.top
+          });
+        }
+        
+        // Extract PDF annotations (links)
+        try {
+          const annotations = await page.getAnnotations();
+          const links = [];
+          
+          annotations.forEach((annotation, index) => {
+            if (annotation.subtype === 'Link' && annotation.url) {
+              const linkType = getLinkType(annotation.url);
+              const isVideo = isVideoLink(annotation.url);
+              
+              // Convert PDF coordinates to canvas coordinates
+              const rect = annotation.rect;
+              const x = rect[0] * pageScale;
+              const y = (viewport.height - rect[3]) * pageScale; // PDF Y coordinates are bottom-up
+              const width = (rect[2] - rect[0]) * pageScale;
+              const height = (rect[3] - rect[1]) * pageScale;
+              
+              links.push({
+                id: `link-${index}`,
+                url: annotation.url,
+                type: linkType,
+                videoType: isVideo ? getVideoType(annotation.url) : null,
+                isVideo,
+                rect: { x, y, width, height },
+                tooltip: isVideo ? 'Click to play video' : 'Click to open link'
+              });
+            }
+          });
+          
+          setPageLinks(links);
+        } catch (annotationError) {
+          console.error('Error extracting annotations:', annotationError);
+          setPageLinks([]);
+        }
+        
         setPageLoading(false);
       } catch (error) {
         if (error.name !== 'RenderingCancelledException') {
@@ -249,6 +337,11 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   };
 
   const fitToWidth = () => setScale('page-width');
+
+  // Handle link clicks
+  const handleLinkClick = (link) => {
+    window.open(link.url, '_blank', 'noopener,noreferrer');
+  };
 
   if (loading) {
     return (
@@ -352,6 +445,46 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
             </div>
           )}
           <canvas ref={canvasRef} className="pdf-canvas" />
+          
+          {/* Links Overlay */}
+          {pageLinks.length > 0 && (
+            <div className="links-overlay" ref={overlayRef}>
+              {pageLinks.map((link) => (
+                <div
+                  key={link.id}
+                  className={`link-overlay ${link.type}`}
+                  data-video-type={link.videoType}
+                  style={{
+                    position: 'absolute',
+                    left: `${link.rect.x}px`,
+                    top: `${link.rect.y}px`,
+                    width: `${link.rect.width}px`,
+                    height: `${link.rect.height}px`,
+                  }}
+                  onClick={() => handleLinkClick(link)}
+                  title={link.tooltip}
+                >
+                  {link.isVideo && (
+                    <div className="video-play-overlay">
+                      <div className="play-button">
+                        <span className="play-icon">▶</span>
+                      </div>
+                      <div className="video-type-badge">
+                        {link.videoType === 'youtube' && '📺'}
+                        {link.videoType === 'vimeo' && '🎬'}
+                        {link.videoType === 'video-file' && '🎥'}
+                        {link.videoType === 'loom' && '🔗'}
+                        {link.videoType === 'wistia' && '💼'}
+                        {link.videoType === 'dailymotion' && '📺'}
+                        {link.videoType === 'video' && '📹'}
+                        {!link.videoType && '📹'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
