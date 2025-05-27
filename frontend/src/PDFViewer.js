@@ -13,7 +13,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const [pageLoading, setPageLoading] = useState(false);
   const [thumbnails, setThumbnails] = useState([]);
   const [showThumbnails, setShowThumbnails] = useState(true); // Show by default
-  const [showTOC, setShowTOC] = useState(false); // Table of Contents
+  const [showTOC, setShowTOC] = useState(true); // Table of Contents
   const [thumbnailsLoading, setThumbnailsLoading] = useState(false);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
