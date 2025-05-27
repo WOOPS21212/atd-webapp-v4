@@ -26,7 +26,31 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState(null); // Added threadId state
+  const [pdfPage, setPdfPage] = useState(1); // Added state for PDF page
   const messagesEndRef = useRef(null);
+  const pdfBaseUrl = '/ATD-RFP-Response.pdf'; // Define base URL for PDF
+
+  let scrollTimeout = useRef(null); // Using useRef for timeout ID to persist across renders
+
+  // Function to scroll PDF to a specific page with debounce
+  const scrollToPDFPage = (pageNum) => {
+    clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      const iframe = document.getElementById('pdf-viewer');
+      if (iframe) {
+        // Ensure the base URL doesn't already contain a page fragment
+        const currentSrc = iframe.src.split('#')[0];
+        iframe.src = `${currentSrc}#page=${pageNum}`;
+      }
+    }, 300);
+  };
+
+  useEffect(() => {
+    // Scroll to PDF page when pdfPage state changes
+    if (pdfPage > 0) { // Ensure pdfPage is valid before scrolling
+      scrollToPDFPage(pdfPage);
+    }
+  }, [pdfPage]); // Dependency on pdfPage
 
   useEffect(() => {
     // Fetch threadId on component mount
@@ -95,6 +119,16 @@ function App() {
       if (chunk === '[DONE]') break; // Check for DONE marker directly
       fullMessage += chunk; // Add chunk directly to fullMessage
 
+      // Detect page mentions
+      const pageMentionRegex = /page\s+(\d+)/i;
+      const match = fullMessage.match(pageMentionRegex);
+      if (match) {
+        const pageNumber = parseInt(match[1]);
+        if (!isNaN(pageNumber) && pageNumber > 0) {
+          setPdfPage(pageNumber); // Update state, useEffect will handle scrolling
+        }
+      }
+
       // Fix list formatting before updating the message
       const formattedMessage = fixListFormatting(fullMessage);
 
@@ -151,7 +185,9 @@ function App() {
       </div>
       <div className="pdf-panel">
         <iframe
-          src="/ATD-RFP-Response.pdf"
+          id="pdf-viewer" // Added ID
+          key={pdfPage} // Added key to force re-render on page change if needed, though src change should suffice
+          src={`${pdfBaseUrl}#page=${pdfPage}`} // Dynamically set src
           title="ATD RFP"
           className="pdf-iframe"
         />
