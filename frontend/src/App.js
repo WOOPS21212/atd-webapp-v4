@@ -32,7 +32,7 @@ function App() {
     // Fetch threadId on component mount
     const fetchThreadId = async () => {
       try {
-        const res = await fetch('http://localhost:5000/init', { method: 'POST' });
+        const res = await fetch('https://atd-webapp-v4.onrender.com/init', { method: 'POST' });
         if (!res.ok) {
           throw new Error(`Failed to initialize thread: ${res.status}`);
         }
@@ -118,7 +118,7 @@ function App() {
           <div className="chat-box">
             {messages.map((msg, index) => (
               <div key={index} className={msg.role === 'user' ? 'user-message' : 'assistant-message'}>
-                <strong>{msg.role === 'user' ? 'You' : 'Assistant'}:</strong>
+                <strong>{msg.role === 'user' ? 'You' : 'Assistant'}: </strong><br />
                 {msg.role === 'assistant' ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}

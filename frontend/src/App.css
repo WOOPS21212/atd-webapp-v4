@@ -64,12 +64,16 @@ body {
   line-height: 1.4;
 }
 
-.chat-message.user {
-  color: #90caf9;
+.user-message {
+  margin-bottom: 1em; /* Add vertical space under user message */
 }
 
-.chat-message.assistant {
-  color: rgb(171, 240, 181); /* This is the base color for assistant text before markdown */
+.user-message span {
+  color: #a1a1a1; /* User text color - Red for testing */
+}
+
+.assistant-message {
+  color: rgb(208, 244, 255); /* Assistant text color */
 }
 
 .input-row {
@@ -89,7 +93,7 @@ input[type="text"] {
 button {
   margin-left: 0.5rem;
   padding: 0.75rem 1rem;
-  background-color: #03dac6;
+  background-color: #c46539;
   color: #000;
   border: none;
   border-radius: 4px;
