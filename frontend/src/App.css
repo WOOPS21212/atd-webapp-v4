@@ -399,7 +399,7 @@
 }
 
 .chat-panel {
-  width: 50%;
+  width: 33.33%;
   padding: 1rem;
   overflow-y: auto;
   background-color: #111827;
@@ -411,7 +411,7 @@
 }
 
 .pdf-panel {
-  width: 50%;
+  width: 66.67%;
   padding: 1rem;
   overflow-y: auto;
   background-color: #1f2937;
@@ -706,7 +706,7 @@ button:disabled {
 /* Adjust chat panel when drawer is open */
 .app-layout:has(.question-drawer.open) .chat-panel {
   margin-left: 400px;
-  width: calc(50% - 200px);
+  width: calc(33.33% - 133px);
 }
 
 /* Scrollbar styling for drawer */
