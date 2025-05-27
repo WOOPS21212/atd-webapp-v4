@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import PDFViewer from './PDFViewer';
 import './App.css';
 
 // Use environment variable or default to localhost for development
@@ -69,29 +70,12 @@ function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef(null);
-  const pdfBaseUrl = '/ATD_x_Ammunition_May Responses_Read-Ahead.pdf';
+  const pdfUrl = '/ATD_x_Ammunition_May Responses_Read-Ahead.pdf';
 
-  let scrollTimeout = useRef(null);
-
-  // Function to scroll PDF to a specific page with debounce
-  const scrollToPDFPage = (pageNum) => {
-    clearTimeout(scrollTimeout.current);
-    scrollTimeout.current = setTimeout(() => {
-      const iframe = document.getElementById('pdf-viewer');
-      if (iframe) {
-        // Ensure the base URL doesn't already contain a page fragment
-        const currentSrc = iframe.src.split('#')[0];
-        iframe.src = `${currentSrc}#page=${pageNum}`;
-      }
-    }, 300);
+  // Handle page change from PDF viewer
+  const handlePdfPageChange = (newPage) => {
+    setPdfPage(newPage);
   };
-
-  useEffect(() => {
-    // Scroll to PDF page when pdfPage state changes
-    if (pdfPage > 0) {
-      scrollToPDFPage(pdfPage);
-    }
-  }, [pdfPage]);
 
   useEffect(() => {
     // Fetch threadId on component mount
@@ -355,12 +339,10 @@ function App() {
           </div>
         </div>
         <div className="pdf-panel">
-          <iframe
-            id="pdf-viewer"
-            key={pdfPage}
-            src={`${pdfBaseUrl}#page=${pdfPage}`}
-            title="ATD RFP"
-            className="pdf-iframe"
+          <PDFViewer 
+            pdfUrl={pdfUrl}
+            currentPage={pdfPage}
+            onPageChange={handlePdfPageChange}
           />
         </div>
       </div>
