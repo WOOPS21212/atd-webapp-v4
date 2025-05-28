@@ -12,25 +12,44 @@ import './App.css';
 // Use environment variable or default to localhost for development
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+function debounce(func, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => func(...args), delay);
+  };
+}
+
 // Helper function to fix list formatting
 const fixListFormatting = (text) => {
   if (typeof text !== 'string') return text;
-  
-  // Fix bullet lists: ensure proper line breaks before list items
-  let fixedText = text.replace(/([^\n])\n- /g, '$1\n\n- ');
-  
-  // Fix numbered lists: ensure proper line breaks before numbered items
-  fixedText = fixedText.replace(/([^\n])\n(\d+\. )/g, '$1\n\n$2');
-  
-  // Ensure lists start with proper line break if they come after text
-  fixedText = fixedText.replace(/([.!?:])\n- /g, '$1\n\n- ');
-  fixedText = fixedText.replace(/([.!?:])\n(\d+\. )/g, '$1\n\n$2');
-  
+
+  let fixedText = text
+    .replace(/([^\n])\n- /g, '$1\n\n- ')
+    .replace(/([^\n])\n(\d+\. )/g, '$1\n\n$2')
+    .replace(/([.!?:])\n- /g, '$1\n\n- ')
+    .replace(/([.!?:])\n(\d+\. )/g, '$1\n\n$2')
+    .replace(/【\d+:\d+†[^\]]+】/g, ''); // ✅ Strip citation markers
+
   return fixedText;
 };
 
+const defaultAssistantMessage = {
+  role: 'assistant',
+  content: `Hi there—Amy here, your digital guide to Ammunition's thinking for ATD.
+
+This portal was built to help you move through the response materials in whatever way works best—whether you're here to validate strategic fit, scan for standout work, or dive deep into specifics.
+
+You can:
+- Ask me to simplify or summarize anything on screen
+- Use the Questions tab above this chat to spark ideas or shortcuts
+- Navigate directly to a section using the strip at the bottom
+
+Not sure where to start? Just ask. I'll help you zero in on what matters most to you.`
+};
+
 function App() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([defaultAssistantMessage]);
   const [input, setInput] = useState('');
   const [threadId, setThreadId] = useState(null);
   const [pdfPage, setPdfPage] = useState(1);
@@ -88,15 +107,17 @@ function App() {
     fetchThreadId();
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
+  const rawScrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  const debouncedScrollToBottom = useRef(debounce(rawScrollToBottom, 150)).current;
+
+  useEffect(() => {
+    debouncedScrollToBottom();
+  }, [messages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -287,28 +308,20 @@ function App() {
               ))}
             </div>
           </div>
-          {/* Drawer Tab */}
+        </div>
+        
+        <div className="chat-panel">
           <button 
-            className="drawer-tab" 
+            className="drawer-tab-horizontal"
             onClick={() => {
               if (!drawerOpen && !localStorage.getItem('questionDrawerHintSeen')) {
                 localStorage.setItem('questionDrawerHintSeen', 'true');
               }
               setDrawerOpen(!drawerOpen);
             }}
-            aria-label="Toggle question drawer"
           >
-            <span className="tab-text">Questions</span>
-            <span className="tab-arrow">{drawerOpen ? '◀' : '▶'}</span>
-            {!localStorage.getItem('questionDrawerHintSeen') && (
-              <div className="drawer-hint-bubble">
-                💡 Click here for starter questions!
-              </div>
-            )}
+            {drawerOpen ? 'Hide Questions' : 'View Common Questions'}
           </button>
-        </div>
-        
-        <div className="chat-panel">
           <div className="chat-container">
             <div className="chat-box">
               {messages.map((msg, index) => (
