@@ -44,6 +44,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(null);
   const [scale, setScale] = useState('page-width');
+  const [baseScale, setBaseScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
   const [thumbnails, setThumbnails] = useState([]);
@@ -176,11 +177,14 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
   const calculateScale = useCallback((page, container) => {
     if (scale === 'page-width' && container) {
       const viewport = page.getViewport({ scale: 1 });
-      const containerWidth = container.clientWidth - 40; // Account for padding
-      return containerWidth / viewport.width;
+      const containerWidth = container.clientWidth; // Use full container width
+      const newScale = containerWidth / viewport.width;
+      setBaseScale(newScale); // ✅ Save base scale
+      return newScale;
     }
-    return typeof scale === 'number' ? scale : 1.0;
-  }, [scale]);
+
+    return typeof scale === 'number' ? scale : baseScale;
+  }, [scale, baseScale]);
 
   // Render PDF page
   useEffect(() => {
@@ -285,19 +289,17 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
   };
 
   const zoomIn = () => {
-    if (scale === 'page-width') {
-      setScale(1.2);
-    } else {
-      setScale(prev => prev + 0.2); // 🚫 No upper limit
-    }
+    setScale(prev => {
+      if (prev === 'page-width') return baseScale + 0.2;
+      return typeof prev === 'number' ? prev + 0.2 : baseScale + 0.2;
+    });
   };
 
   const zoomOut = () => {
-    if (scale === 'page-width') {
-      setScale(0.8);
-    } else {
-      setScale(prev => Math.max(prev - 0.2, 0.5));
-    }
+    setScale(prev => {
+      if (prev === 'page-width') return baseScale - 0.2;
+      return typeof prev === 'number' ? Math.max(prev - 0.2, 0.1) : baseScale - 0.2;
+    });
   };
 
   const fitToWidth = () => setScale('page-width');
@@ -369,7 +371,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
         <div className="pdf-zoom-controls">
           <button onClick={zoomOut} className="pdf-zoom-btn" title="Zoom out">−</button>
           <button onClick={fitToWidth} className="pdf-zoom-btn fit-width" title="Fit to width">
-            {scale === 'page-width' ? 'Fit Width' : `${Math.round((typeof scale === 'number' ? scale : 1) * 100)}%`}
+            {scale === 'page-width' ? 'Fit Width' : `${Math.round((typeof scale === 'number' ? scale : baseScale) * 100)}%`}
           </button>
           <button onClick={zoomIn} className="pdf-zoom-btn" title="Zoom in">+</button>
         </div>

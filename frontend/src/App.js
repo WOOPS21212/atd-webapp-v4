@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileAlt, faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faFileAlt, faChevronUp, faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons';
 import PDFViewer from './PDFViewer';
 import questionSections from './questionData';
 import './App.css';
@@ -356,7 +356,7 @@ function App() {
                 onClick={() => setShowSections(!showSections)}
                 title={showSections ? "Hide sections" : "Show sections"}
               >
-                <FontAwesomeIcon icon={showSections ? faChevronLeft : faChevronRight} />
+                <FontAwesomeIcon icon={showSections ? faChevronUp : faChevronDown} />
               </button>
             </div>
             {showSections && (
