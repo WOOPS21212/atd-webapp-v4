@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import PDFViewer from './PDFViewer';
 import questionSections from './questionData';
 import './App.css';
@@ -44,6 +44,7 @@ You can:
 - Ask me to simplify or summarize anything on screen
 - Use the Questions tab above this chat to spark ideas or shortcuts
 - Navigate directly to a section using the strip at the bottom
+- Use your left and right arrow keys to flip through the deck quickly
 
 Not sure where to start? Just ask. I'll help you zero in on what matters most to you.`
 };
@@ -56,6 +57,7 @@ function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef(null);
+  const sectionRef = useRef(null);
   const pdfUrl = '/ATD_x_Ammunition_May Responses_Read-Ahead.pdf';
 
   // Table of Contents data
@@ -252,6 +254,28 @@ function App() {
     )
   })).filter(section => section.questions.length > 0);
 
+  // Section scrolling functions
+  const scrollSections = (direction) => {
+    const container = sectionRef.current;
+    if (!container) return;
+    const scrollAmount = 240;
+    container.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+    };
+
+    el.addEventListener('wheel', handleWheel);
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -320,7 +344,7 @@ function App() {
               setDrawerOpen(!drawerOpen);
             }}
           >
-            {drawerOpen ? 'Hide Questions' : 'View Common Questions'}
+            {drawerOpen ? 'Hide Questions' : 'ATD Partnership Questions'}
           </button>
           <div className="chat-container">
             <div className="chat-box">
@@ -366,21 +390,31 @@ function App() {
         </div>
       </div>
       <div className="section-footer">
-        <div className="section-scrollbar">
-          {tableOfContents.map((section) => (
-            <button
-              key={section.num}
-              className={`section-item ${pdfPage >= section.page &&
-                (tableOfContents.findIndex(s => s.num === section.num) === tableOfContents.length - 1 ||
-                 pdfPage < tableOfContents[tableOfContents.findIndex(s => s.num === section.num) + 1]?.page)
-                ? 'active' : ''}`}
-              onClick={() => goToPage(section.page)}
-            >
-              <span className="section-num">{section.num}</span>
-              <span className="section-title">{section.title}</span>
-              <span className="section-page">p.{section.page}</span>
-            </button>
-          ))}
+        <div className="section-scroll-wrapper">
+          <button className="section-scroll-btn left" onClick={() => scrollSections('left')}>
+            <FontAwesomeIcon icon={faChevronLeft} />
+          </button>
+
+          <div className="section-scrollbar" ref={sectionRef}>
+            {tableOfContents.map((section) => (
+              <button
+                key={section.num}
+                className={`section-item ${pdfPage >= section.page &&
+                  (tableOfContents.findIndex(s => s.num === section.num) === tableOfContents.length - 1 ||
+                   pdfPage < tableOfContents[tableOfContents.findIndex(s => s.num === section.num) + 1]?.page)
+                  ? 'active' : ''}`}
+                onClick={() => goToPage(section.page)}
+              >
+                <span className="section-num">{section.num}</span>
+                <span className="section-title">{section.title}</span>
+                <span className="section-page">p.{section.page}</span>
+              </button>
+            ))}
+          </div>
+
+          <button className="section-scroll-btn right" onClick={() => scrollSections('right')}>
+            <FontAwesomeIcon icon={faChevronRight} />
+          </button>
         </div>
       </div>
     </div>

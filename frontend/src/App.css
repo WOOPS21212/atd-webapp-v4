@@ -499,10 +499,10 @@ button:disabled {
 .drawer-tab-horizontal {
   position: relative;
   width: calc(100% - 2rem);
-  margin: 1rem auto 0 auto;
-  background-color: #FF5722;
+  margin: 0 auto 0 auto;
+  background-color: #18332F;
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
   padding: 0.5rem 1rem;
@@ -515,7 +515,7 @@ button:disabled {
 }
 
 .drawer-tab-horizontal:hover {
-  background-color: #E64A19;
+  background-color: #142926;
 }
 
 /* Drawer Tab - Modern Design */
@@ -1538,15 +1538,30 @@ button:disabled {
   margin-top: 1rem;
 }
 
-.section-scrollbar {
+.section-scroll-wrapper {
+  position: relative;
   display: flex;
+  align-items: center;
+  padding: 0 2rem;
+}
+
+.section-scrollbar {
+  flex: 1;
   overflow-x: auto;
+  display: flex;
   gap: 0.25rem;
+  scroll-behavior: smooth;
   padding: 0.25rem 0.5rem;
 }
 
+/* Scrollbar improvement */
 .section-scrollbar::-webkit-scrollbar {
-  height: 6px;
+  height: 12px;
+  transition: height 0.2s ease;
+}
+
+.section-scrollbar:hover::-webkit-scrollbar {
+  height: 26px;
 }
 
 .section-scrollbar::-webkit-scrollbar-thumb {
@@ -1554,10 +1569,41 @@ button:disabled {
   border-radius: 3px;
 }
 
+.section-scroll-btn {
+  position: absolute;
+  top: 50%;
+  background: #FF5722;
+  color: #fff;
+  border: none;
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  border-radius: 10%;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-scroll-btn:hover {
+  background-color: #e64a19;
+}
+
+.section-scroll-btn.left {
+  left: 0.25rem;
+}
+
+.section-scroll-btn.right {
+  right: 0.25rem;
+}
+
 .section-scrollbar .section-item {
   flex: 0 0 auto;
   font-size: 0.7rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.55rem;
   border-radius: 4px;
   background: #f8f8f8;
   border: 1px solid #ddd;
