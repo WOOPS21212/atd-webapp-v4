@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileAlt, faChevronUp, faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import PDFViewer from './PDFViewer';
 import questionSections from './questionData';
 import './App.css';
@@ -36,7 +36,6 @@ function App() {
   const [pdfPage, setPdfPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSections, setShowSections] = useState(true);
   const messagesEndRef = useRef(null);
   const pdfUrl = '/ATD_x_Ammunition_May Responses_Read-Ahead.pdf';
 
@@ -346,45 +345,29 @@ function App() {
           </div>
         </div>
         <div className="pdf-panel">
-          {/* Section Navigation */}
-          <div className="section-navigation">
-            <div className="section-navigation-header">
-              <FontAwesomeIcon icon={faFileAlt} className="section-icon" />
-              <h3>Deck Sections</h3>
-              <button 
-                className="section-toggle-btn"
-                onClick={() => setShowSections(!showSections)}
-                title={showSections ? "Hide sections" : "Show sections"}
-              >
-                <FontAwesomeIcon icon={showSections ? faChevronUp : faChevronDown} />
-              </button>
-            </div>
-            {showSections && (
-              <div className="section-grid">
-                {tableOfContents.map((section) => (
-                  <button
-                    key={section.num}
-                    className={`section-item ${pdfPage >= section.page && 
-                      (tableOfContents.findIndex(s => s.num === section.num) === tableOfContents.length - 1 || 
-                       pdfPage < tableOfContents[tableOfContents.findIndex(s => s.num === section.num) + 1]?.page) 
-                      ? 'active' : ''}`}
-                    onClick={() => goToPage(section.page)}
-                  >
-                    <span className="section-num">{section.num}</span>
-                    <span className="section-title">{section.title}</span>
-                    <span className="section-page">p.{section.page}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           <PDFViewer 
             pdfUrl={pdfUrl}
             currentPage={pdfPage}
             onPageChange={handlePdfPageChange}
-            showSections={showSections}
           />
+        </div>
+      </div>
+      <div className="section-footer">
+        <div className="section-scrollbar">
+          {tableOfContents.map((section) => (
+            <button
+              key={section.num}
+              className={`section-item ${pdfPage >= section.page &&
+                (tableOfContents.findIndex(s => s.num === section.num) === tableOfContents.length - 1 ||
+                 pdfPage < tableOfContents[tableOfContents.findIndex(s => s.num === section.num) + 1]?.page)
+                ? 'active' : ''}`}
+              onClick={() => goToPage(section.page)}
+            >
+              <span className="section-num">{section.num}</span>
+              <span className="section-title">{section.title}</span>
+              <span className="section-page">p.{section.page}</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
