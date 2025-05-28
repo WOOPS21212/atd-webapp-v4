@@ -392,7 +392,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
       {pageLinks.length > 0 && (
         <div className="pdf-links-container">
           <div className="pdf-links-header">
-            <h4>🔗 Links on this page</h4>
+            <h4>Links on this page</h4>
           </div>
           <div className="pdf-links-list">
             {pageLinks.map((link) => (
