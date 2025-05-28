@@ -309,6 +309,20 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
     window.open(link.url, '_blank', 'noopener,noreferrer');
   };
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'd') {
+        goToPage(Math.min(pdf.numPages, pageNumber + 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'a') {
+        goToPage(Math.max(1, pageNumber - 1));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pageNumber, pdf]);
+
   if (loading) {
   return (
     <div className={`pdf-viewer-container ${showSections ? 'pdf-viewer-with-sections' : 'pdf-viewer-without-sections'}`}>
