@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import PDFViewer from './PDFViewer';
 import questionSections from './questionData';
+import './errorSuppression'; // Suppress benign ResizeObserver errors
 import './App.css';
 
 // Use environment variable or default to localhost for development
@@ -78,28 +79,26 @@ function App() {
   const sectionRef = useRef(null);
   const pdfUrl = '/ATDxAmmunition_May-29-2025.pdf';
 
-  // Table of Contents data
-  const tableOfContents = [
-    { num: '01', title: 'Agency overview', page: 5 },
-    { num: '02', title: 'Strategy', page: 10 },
-    { num: '03', title: 'Innovation', page: 38 },
-    { num: '04', title: 'Technology', page: 71 },
-    { num: '05', title: 'Content', page: 96 },
-    { num: '06', title: 'Advertising / SEM / SEO', page: 139 },
-    { num: '07', title: 'Web', page: 164 },
-    { num: '08', title: 'Events', page: 193 },
-    { num: '09', title: 'Public Relations', page: 208 },
-    { num: '10', title: 'Crisis Management', page: 235 },
-    { num: '11', title: 'Production', page: 250 },
-    { num: '12', title: 'Management Fee and Additional Fee', page: 277 },
-    { num: '13', title: 'Account Management', page: 287 },
-    { num: '14', title: 'Reporting & Analytics', page: 312 },
-    { num: '15', title: 'Team & Chem / Culture', page: 329 },
-    { num: '16', title: 'SME Representation (PR, Social, Strategy)', page: 353 },
-    { num: '17', title: 'Social Media', page: 434 },
-    { num: '18', title: 'Media Buying', page: 488 },
-  ];
-
+// Table of Contents data - Updated with new sections and page numbers
+const tableOfContents = [
+  { num: '01', title: 'Strategy', page: 151 },
+  { num: '02', title: 'Innovation', page: 179 },
+  { num: '03', title: 'Technology', page: 244 },
+  { num: '04', title: 'Content', page: 290 }, // Updated - was going to Web at 329
+  { num: '05', title: 'Advertising / SEM / SEO', page: 365 },
+  { num: '06', title: 'Web', page: 366 },
+  { num: '07', title: 'Events', page: 368 },
+  { num: '08', title: 'Public Relations', page: 391 },
+  { num: '09', title: 'Crisis Management', page: 418 }, // Updated - was 446
+  { num: '10', title: 'Production', page: 448 },
+  { num: '11', title: 'Fee', page: 467 },
+  { num: '12', title: 'Account Management', page: 485 },
+  { num: '13', title: 'Reporting & Analytics', page: 506 },
+  { num: '14', title: 'Team & Chem / Culture', page: 539 },
+  { num: '15', title: 'SME Representation (PR, Social, Strategy)', page: 541 },
+  { num: '16', title: 'Social Media', page: 569 },
+  { num: '17', title: 'Media Buying', page: 593 },
+];
   // Go to specific page function
   const goToPage = (page) => {
     setPdfPage(page);
@@ -138,6 +137,40 @@ function App() {
   useEffect(() => {
     debouncedScrollToBottom();
   }, [messages, isTyping]);
+
+  // Keyboard navigation for PDF
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Only handle arrow keys if no input element is focused
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          if (pdfPage > 1) {
+            goToPage(pdfPage - 1);
+          }
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          // The PDF viewer will handle the actual bounds checking
+          goToPage(pdfPage + 1);
+          break;
+        default:
+          break;
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [pdfPage]); // Dependencies to ensure we have current page state
 
   const handleSubmit = async (e) => {
     e.preventDefault();

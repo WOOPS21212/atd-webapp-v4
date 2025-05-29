@@ -1670,10 +1670,31 @@ button:disabled {
   flex-direction: column;
   align-items: flex-start;
   min-width: 160px;
+  transition: all 0.2s ease;
+}
+
+.section-scrollbar .section-item:hover {
+  background-color: #FF5722;
+  color: #fff;
+  border-color: #FF5722;
 }
 
 .section-scrollbar .section-item.active {
   background-color: #FF5722;
-  color: #fff;
+  color: #fff !important;
   border-color: #FF5722;
+}
+
+/* Force all child elements to be white when active */
+.section-scrollbar .section-item.active .section-num,
+.section-scrollbar .section-item.active .section-title,
+.section-scrollbar .section-item.active .section-page {
+  color: #fff !important;
+}
+
+/* Also fix hover state */
+.section-scrollbar .section-item:hover .section-num,
+.section-scrollbar .section-item:hover .section-title,
+.section-scrollbar .section-item:hover .section-page {
+  color: #fff !important;
 }

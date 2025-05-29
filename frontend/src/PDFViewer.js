@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist/webpack';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faImages } from '@fortawesome/free-solid-svg-icons';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -39,12 +37,11 @@ const getLinkType = (url) => {
   return isVideoLink(url) ? 'video' : 'regular';
 };
 
-const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) => {
+const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const [pdf, setPdf] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(null);
   const [scale, setScale] = useState('page-width');
-  const [baseScale, setBaseScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
   const [thumbnails, setThumbnails] = useState([]);
@@ -56,7 +53,92 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
   const [renderTask, setRenderTask] = useState(null);
   const [pageLinks, setPageLinks] = useState([]);
   const overlayRef = useRef(null);
+  const [overlayReady, setOverlayReady] = useState(false);
+  const resizeObserverRef = useRef(null);
 
+// Table of Contents data - Updated with new sections and page numbers
+const tableOfContents = [
+  { num: '01', title: 'Strategy', page: 151 },
+  { num: '02', title: 'Innovation', page: 179 },
+  { num: '03', title: 'Technology', page: 244 },
+  { num: '04', title: 'Content', page: 290 }, // Updated - was going to Web at 329
+  { num: '05', title: 'Advertising / SEM / SEO', page: 365 },
+  { num: '06', title: 'Web', page: 366 },
+  { num: '07', title: 'Events', page: 368 },
+  { num: '08', title: 'Public Relations', page: 391 },
+  { num: '09', title: 'Crisis Management', page: 418 }, // Updated - was 446
+  { num: '10', title: 'Production', page: 448 },
+  { num: '11', title: 'Fee', page: 467 },
+  { num: '12', title: 'Account Management', page: 485 },
+  { num: '13', title: 'Reporting & Analytics', page: 506 },
+  { num: '14', title: 'Team & Chem / Culture', page: 539 },
+  { num: '15', title: 'SME Representation (PR, Social, Strategy)', page: 541 },
+  { num: '16', title: 'Social Media', page: 569 },
+  { num: '17', title: 'Media Buying', page: 593 },
+];
+  // Update overlay positions when canvas or container size changes
+  const updateOverlayPositions = useCallback(() => {
+    if (!canvasRef.current || !containerRef.current || pageLinks.length === 0) return;
+
+    // Get the current canvas position relative to its container
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    
+    // Get the actual rendered size of the canvas
+    const canvasRect = canvas.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate the offset of the canvas within its container
+    const offsetX = canvasRect.left - containerRect.left + container.scrollLeft;
+    const offsetY = canvasRect.top - containerRect.top + container.scrollTop;
+    
+    // Update the overlay container position
+    if (overlayRef.current) {
+      overlayRef.current.style.left = `${offsetX}px`;
+      overlayRef.current.style.top = `${offsetY}px`;
+      overlayRef.current.style.width = `${canvas.width}px`;
+      overlayRef.current.style.height = `${canvas.height}px`;
+    }
+  }, [pageLinks]);
+
+  // Set up ResizeObserver to watch for canvas size changes
+  useEffect(() => {
+    if (!canvasRef.current || !containerRef.current) return;
+
+    // Create ResizeObserver
+    resizeObserverRef.current = new ResizeObserver(() => {
+      updateOverlayPositions();
+    });
+
+    // Observe both canvas and container
+    resizeObserverRef.current.observe(canvasRef.current);
+    resizeObserverRef.current.observe(containerRef.current);
+
+    // Also listen for scroll events on the container
+    const container = containerRef.current;
+    const handleScroll = () => updateOverlayPositions();
+    container.addEventListener('scroll', handleScroll);
+
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [updateOverlayPositions]);
+
+  // Update positions when links change
+  useEffect(() => {
+    if (pageLinks.length > 0) {
+      // Use setTimeout to ensure DOM has updated
+      setTimeout(() => {
+        updateOverlayPositions();
+        setOverlayReady(true);
+      }, 100);
+    } else {
+      setOverlayReady(false);
+    }
+  }, [pageLinks, updateOverlayPositions]);
 
   // Generate thumbnails for visible range around current page
   const generateVisibleThumbnails = useCallback(async () => {
@@ -170,21 +252,17 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
     if (currentPage && currentPage !== pageNumber && currentPage <= numPages) {
       setPageNumber(currentPage);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, numPages]);
 
   // Calculate scale for page width
   const calculateScale = useCallback((page, container) => {
     if (scale === 'page-width' && container) {
       const viewport = page.getViewport({ scale: 1 });
-      const containerWidth = container.clientWidth; // Use full container width
-      const newScale = containerWidth / viewport.width;
-      setBaseScale(newScale); // ✅ Save base scale
-      return newScale;
+      const containerWidth = container.clientWidth - 40;
+      return containerWidth / viewport.width;
     }
-
-    return typeof scale === 'number' ? scale : baseScale;
-  }, [scale, baseScale]);
+    return typeof scale === 'number' ? scale : 1.0;
+  }, [scale]);
 
   // Render PDF page
   useEffect(() => {
@@ -198,6 +276,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
 
       try {
         setPageLoading(true);
+        setOverlayReady(false);
         const page = await pdf.getPage(pageNumber);
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
@@ -230,7 +309,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
               // Convert PDF coordinates to canvas coordinates
               const rect = annotation.rect;
               const x = rect[0] * pageScale;
-              const y = (viewport.height - rect[3]) * pageScale; // PDF Y coordinates are bottom-up
+              const y = (viewport.height - rect[3] * pageScale);
               const width = (rect[2] - rect[0]) * pageScale;
               const height = (rect[3] - rect[1]) * pageScale;
               
@@ -262,7 +341,6 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
     };
 
     renderPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdf, pageNumber, scale, calculateScale]);
 
   // Navigation functions
@@ -289,17 +367,19 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
   };
 
   const zoomIn = () => {
-    setScale(prev => {
-      if (prev === 'page-width') return baseScale + 0.2;
-      return typeof prev === 'number' ? prev + 0.2 : baseScale + 0.2;
-    });
+    if (scale === 'page-width') {
+      setScale(1.2);
+    } else {
+      setScale(prev => Math.min(prev + 0.2, 3));
+    }
   };
 
   const zoomOut = () => {
-    setScale(prev => {
-      if (prev === 'page-width') return baseScale - 0.2;
-      return typeof prev === 'number' ? Math.max(prev - 0.2, 0.1) : baseScale - 0.2;
-    });
+    if (scale === 'page-width') {
+      setScale(0.8);
+    } else {
+      setScale(prev => Math.max(prev - 0.2, 0.5));
+    }
   };
 
   const fitToWidth = () => setScale('page-width');
@@ -309,23 +389,9 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
     window.open(link.url, '_blank', 'noopener,noreferrer');
   };
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowRight' || e.key === 'd') {
-        goToPage(Math.min(pdf.numPages, pageNumber + 1));
-      } else if (e.key === 'ArrowLeft' || e.key === 'a') {
-        goToPage(Math.max(1, pageNumber - 1));
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pageNumber, pdf]);
-
   if (loading) {
-  return (
-    <div className={`pdf-viewer-container ${showSections ? 'pdf-viewer-with-sections' : 'pdf-viewer-without-sections'}`}>
+    return (
+      <div className="pdf-viewer-container">
         <div className="pdf-loading">
           <div className="loading-spinner"></div>
           <p>Loading PDF...</p>
@@ -335,7 +401,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
   }
 
   return (
-    <div className={`pdf-viewer-container ${showSections ? 'pdf-viewer-with-sections' : 'pdf-viewer-without-sections'}`}>
+    <div className="pdf-viewer-container">
       {/* PDF Controls - Clean Horizontal Layout */}
       <div className="pdf-controls">
         <div className="pdf-controls-group">
@@ -373,11 +439,13 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
             className={`pdf-toggle-btn ${showThumbnails ? 'active' : ''}`}
             title="Toggle thumbnails"
           >
-            <FontAwesomeIcon icon={faImages} />
+            🖼️ Thumbnails
           </button>
         </div>
       </div>
 
+      {/* Table of Contents */}
+      {/* TOC section removed - sections should only appear at bottom */}
 
       {/* PDF Canvas with Zoom Controls */}
       <div className="pdf-canvas-wrapper">
@@ -385,7 +453,7 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
         <div className="pdf-zoom-controls">
           <button onClick={zoomOut} className="pdf-zoom-btn" title="Zoom out">−</button>
           <button onClick={fitToWidth} className="pdf-zoom-btn fit-width" title="Fit to width">
-            {scale === 'page-width' ? 'Fit Width' : `${Math.round((typeof scale === 'number' ? scale : baseScale) * 100)}%`}
+            {scale === 'page-width' ? 'Fit Width' : `${Math.round((typeof scale === 'number' ? scale : 1) * 100)}%`}
           </button>
           <button onClick={zoomIn} className="pdf-zoom-btn" title="Zoom in">+</button>
         </div>
@@ -396,34 +464,59 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
               <div className="loading-spinner small"></div>
             </div>
           )}
+          <canvas ref={canvasRef} className="pdf-canvas" />
           
-          {/* Canvas Container */}
-          <div style={{ position: 'relative', display: 'inline-block' }}>
-            <canvas ref={canvasRef} className="pdf-canvas" />
-          </div>
+          {/* Links Overlay */}
+          {pageLinks.length > 0 && overlayReady && (
+            <div 
+              className="links-overlay" 
+              ref={overlayRef}
+              style={{
+                position: 'absolute',
+                pointerEvents: 'none',
+                opacity: overlayReady ? 1 : 0,
+                transition: 'opacity 0.3s ease'
+              }}
+            >
+              {pageLinks.map((link) => (
+                <div
+                  key={link.id}
+                  className={`link-overlay ${link.type}`}
+                  data-video-type={link.videoType}
+                  style={{
+                    position: 'absolute',
+                    left: `${link.rect.x}px`,
+                    top: `${link.rect.y}px`,
+                    width: `${link.rect.width}px`,
+                    height: `${link.rect.height}px`,
+                    pointerEvents: 'all'
+                  }}
+                  onClick={() => handleLinkClick(link)}
+                  title={link.tooltip}
+                >
+                  {link.isVideo && (
+                    <div className="video-play-overlay">
+                      <div className="play-button">
+                        <span className="play-icon">▶</span>
+                      </div>
+                      <div className="video-type-badge">
+                        {link.videoType === 'youtube' && '📺'}
+                        {link.videoType === 'vimeo' && '🎬'}
+                        {link.videoType === 'video-file' && '🎥'}
+                        {link.videoType === 'loom' && '🔗'}
+                        {link.videoType === 'wistia' && '💼'}
+                        {link.videoType === 'dailymotion' && '📺'}
+                        {link.videoType === 'video' && '📹'}
+                        {!link.videoType && '📹'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Page Links Section */}
-      {pageLinks.length > 0 && (
-        <div className="pdf-links-container">
-          <div className="pdf-links-header">
-            <h4>Links on this page</h4>
-          </div>
-          <div className="pdf-links-list">
-            {pageLinks.map((link) => (
-              <div
-                key={link.id}
-                className={`pdf-link-item ${link.type}`}
-                onClick={() => handleLinkClick(link)}
-                title={link.tooltip}
-              >
-                <div className="link-url">{link.url}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Thumbnail Strip */}
       {showThumbnails && (
@@ -442,13 +535,10 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange, showSections = true }) =
                     className={`thumbnail ${thumb.pageNum === pageNumber ? 'active' : ''}`}
                     onClick={() => goToPage(thumb.pageNum)}
                   >
-                    <div className="thumb-viewport">
-                      <img src={thumb.dataUrl} alt={`Page ${thumb.pageNum}`} />
-                    </div>
+                    <img src={thumb.dataUrl} alt={`Page ${thumb.pageNum}`} />
                     <span className="thumb-page-num">{thumb.pageNum}</span>
                   </div>
                 ))}
-                {/* Show placeholder for missing pages */}
                 {numPages > 20 && thumbnails.length < numPages && (
                   <div className="thumbnail-placeholder">
                     <span>Navigate to load more pages...</span>
