@@ -53,7 +53,6 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const [renderTask, setRenderTask] = useState(null);
   const [pageLinks, setPageLinks] = useState([]);
 
-
 // Table of Contents data - Updated with new sections and page numbers
 const tableOfContents = [
   { num: '01', title: 'Strategy', page: 151 },
@@ -63,17 +62,21 @@ const tableOfContents = [
   { num: '05', title: 'Advertising', page: 269 },
   { num: '06', title: 'Web', page: 329 },
   { num: '07', title: 'Events', page: 368 },
-  { num: '08', title: 'PR', page: 342 },
-  { num: '09', title: 'Crisis', page: 355 },
-  { num: '10', title: 'Production', page: 367 },
-  { num: '11', title: 'Fees', page: 388 },
-  { num: '12', title: 'Accounts', page: 398 },
-  { num: '13', title: 'Analytics', page: 408 },
-  { num: '14', title: 'Team', page: 423 },
-  { num: '15', title: 'SMEs', page: 435 },
+  { num: '08', title: 'Public Relations', page: 391 },
+  { num: '09', title: 'Crisis', page: 418 },
+  { num: '10', title: 'Production', page: 448 },
+  { num: '11', title: 'Fees', page: 488 },
+  { num: '12', title: 'Account Management', page: 485 },
+  { num: '13', title: 'Analytics', page: 506 },
+  { num: '14', title: 'Team', page: 528 },
+  { num: '15', title: 'SMEs', page: 541 },
   { num: '16', title: 'Social', page: 558 },
-  { num: '17', title: 'Media', page: 578 },
+  { num: '17', title: 'Media Buying', page: 602 },
 ];
+
+
+
+
 
 
 
