@@ -65,7 +65,6 @@ const tableOfContents = [
   { num: '08', title: 'Public Relations', page: 391 },
   { num: '09', title: 'Crisis', page: 418 },
   { num: '10', title: 'Production', page: 448 },
-  { num: '11', title: 'Fees', page: 488 },
   { num: '12', title: 'Account Management', page: 485 },
   { num: '13', title: 'Analytics', page: 506 },
   { num: '14', title: 'Team', page: 528 },
@@ -117,17 +116,44 @@ const tableOfContents = [
     for (const i of sortedPages) {
       try {
         const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 0.15 });
+        // Calculate scale to fit the thumbnail dimensions
+        const desiredWidth = 160;
+        const desiredHeight = 90;
+        const viewport = page.getViewport({ scale: 1 });
+        
+        // Calculate scale to cover the thumbnail area
+        const scaleX = desiredWidth / viewport.width;
+        const scaleY = desiredHeight / viewport.height;
+        const scale = Math.max(scaleX, scaleY) * 1.2; // Slightly larger to ensure coverage
+        
+        const scaledViewport = page.getViewport({ scale });
         
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+        canvas.height = desiredHeight;
+        canvas.width = desiredWidth;
+        
+        // Calculate centering offsets
+        const offsetX = (desiredWidth - scaledViewport.width) / 2;
+        const offsetY = 0; // Top-aligned
+        
+        // Save context state
+        context.save();
+        
+        // Clip to thumbnail dimensions
+        context.rect(0, 0, desiredWidth, desiredHeight);
+        context.clip();
+        
+        // Translate for centering
+        context.translate(offsetX, offsetY);
         
         await page.render({
           canvasContext: context,
-          viewport: viewport,
+          viewport: scaledViewport,
         }).promise;
+        
+        // Restore context state
+        context.restore();
         
         thumbs.push({
           pageNum: i,
@@ -402,18 +428,20 @@ const tableOfContents = [
         <div className="page-links">
           <div className="page-links-header">Links on this page:</div>
           <div className="page-links-list">
-            {pageLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`page-link ${link.type}`}
-                title={link.url}
-              >
-                {link.isVideo && <span className="link-icon">🎥</span>}
-                {link.displayUrl}
-              </a>
+            {pageLinks.map((link, index) => (
+              <React.Fragment key={link.id}>
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`page-link ${link.type}`}
+                  title={link.url}
+                >
+                  {link.isVideo && <span className="link-icon">🎥</span>}
+                  {link.displayUrl}
+                </a>
+                {index < pageLinks.length - 1 && <span className="link-separator"> <i className="fas fa-chevron-right"></i> </span>}
+              </React.Fragment>
             ))}
           </div>
         </div>

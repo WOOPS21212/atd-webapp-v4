@@ -92,7 +92,6 @@ const tableOfContents = [
   { num: '08', title: 'Public Relations', page: 391 },
   { num: '09', title: 'Crisis', page: 418 },
   { num: '10', title: 'Production', page: 448 },
-  { num: '11', title: 'Fees', page: 488 },
   { num: '12', title: 'Account Management', page: 485 },
   { num: '13', title: 'Analytics', page: 506 },
   { num: '14', title: 'Team', page: 528 },
@@ -100,6 +99,7 @@ const tableOfContents = [
   { num: '16', title: 'Social', page: 558 },
   { num: '17', title: 'Media Buying', page: 602 },
 ];
+
 
 
 
