@@ -252,78 +252,83 @@ const tableOfContents = [
     }
   };
 
-  // Handle question selection - auto-send
-  const handleQuestionSelect = async (question) => {
-    setDrawerOpen(false);
+ // Handle question selection - auto-send
+ const handleQuestionSelect = async (question, pageNumber) => {
+  setDrawerOpen(false);
+  
+  // Navigate to the relevant page immediately
+  if (pageNumber) {
+    goToPage(pageNumber);
+  }
+  
+  // Check if we have threadId
+  if (!threadId) {
+    console.log("ThreadId is not available yet.");
+    return;
+  }
+
+  // Create the message and send it immediately
+  const newUserMessage = { role: 'user', content: question };
+  const updatedMessagesForApi = [...messages, newUserMessage];
+  
+  setMessages(updatedMessagesForApi);
+  setIsTyping(true);
+
+  try {
+    const response = await fetch(`${API_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ threadId, messages: updatedMessagesForApi }),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullMessage = '';
     
-    // Check if we have threadId
-    if (!threadId) {
-      console.log("ThreadId is not available yet.");
-      return;
-    }
+    const assistantMessageIndex = updatedMessagesForApi.length; 
+    setIsTyping(false);
+    setMessages((prevMessages) => [...prevMessages, { role: 'assistant', content: '...' }]);
 
-    // Create the message and send it immediately
-    const newUserMessage = { role: 'user', content: question };
-    const updatedMessagesForApi = [...messages, newUserMessage];
-    
-    setMessages(updatedMessagesForApi);
-    setIsTyping(true);
-
-    try {
-      const response = await fetch(`${API_URL}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId, messages: updatedMessagesForApi }),
-      });
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let fullMessage = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value); 
+      console.log('Received chunk:', chunk);
       
-      const assistantMessageIndex = updatedMessagesForApi.length; 
-      setIsTyping(false);
-      setMessages((prevMessages) => [...prevMessages, { role: 'assistant', content: '...' }]);
+      if (chunk === '[DONE]') break;
+      fullMessage += chunk;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value); 
-        console.log('Received chunk:', chunk);
-        
-        if (chunk === '[DONE]') break;
-        fullMessage += chunk;
-
-        // Detect page/slide mentions with enhanced regex
-        const pageMentionRegex = /\b(?:Slide|Page)\s+(\d{1,3})/i;
-        const match = fullMessage.match(pageMentionRegex);
-        if (match) {
-          const pageNumber = parseInt(match[1]);
-          if (!isNaN(pageNumber) && pageNumber > 0) {
-            setPdfPage(pageNumber);
-          }
+      // Detect page/slide mentions with enhanced regex
+      const pageMentionRegex = /\b(?:Slide|Page)\s+(\d{1,3})/i;
+      const match = fullMessage.match(pageMentionRegex);
+      if (match) {
+        const pageNumber = parseInt(match[1]);
+        if (!isNaN(pageNumber) && pageNumber > 0) {
+          setPdfPage(pageNumber);
         }
-
-        // Fix list formatting and add highlighting before updating the message
-        let formattedMessage = fixListFormatting(fullMessage);
-        // Highlight slide/page references in assistant messages
-        formattedMessage = formattedMessage.replace(/\b((?:Slide|Page)\s+\d{1,3})\b/gi, '<span class="highlight-slide">$1</span>');
-
-        setMessages((prevMessages) => {
-          const updated = [...prevMessages];
-          if (updated[assistantMessageIndex] && updated[assistantMessageIndex].role === 'assistant') {
-              updated[assistantMessageIndex] = {
-                  role: 'assistant',
-                  content: formattedMessage,
-              };
-          }
-          return updated;
-        });
       }
-    } catch (error) {
-      console.error('Error in handleQuestionSelect:', error);
-      setIsTyping(false);
+
+      // Fix list formatting and add highlighting before updating the message
+      let formattedMessage = fixListFormatting(fullMessage);
+      // Highlight slide/page references in assistant messages
+      formattedMessage = formattedMessage.replace(/\b((?:Slide|Page)\s+\d{1,3})\b/gi, '<span class="highlight-slide">$1</span>');
+
+      setMessages((prevMessages) => {
+        const updated = [...prevMessages];
+        if (updated[assistantMessageIndex] && updated[assistantMessageIndex].role === 'assistant') {
+            updated[assistantMessageIndex] = {
+                role: 'assistant',
+                content: formattedMessage,
+            };
+        }
+        return updated;
+      });
     }
-  };
+  } catch (error) {
+    console.error('Error in handleQuestionSelect:', error);
+    setIsTyping(false);
+  }
+};
 
   // Filter questions based on search
   const filteredSections = questionSections.map(section => ({
@@ -401,7 +406,7 @@ const tableOfContents = [
                       <li 
                         key={qIdx} 
                         className="question-item"
-                        onClick={() => handleQuestionSelect(question)}
+                        onClick={() => handleQuestionSelect(question, section.page)}
                       >
                         {question}
                       </li>
