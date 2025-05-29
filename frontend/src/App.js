@@ -79,26 +79,33 @@ function App() {
   const sectionRef = useRef(null);
   const pdfUrl = '/ATDxAmmunition_May-29-2025.pdf';
 
+
 // Table of Contents data - Updated with new sections and page numbers
 const tableOfContents = [
   { num: '01', title: 'Strategy', page: 151 },
   { num: '02', title: 'Innovation', page: 179 },
-  { num: '03', title: 'Technology', page: 244 },
-  { num: '04', title: 'Content', page: 290 }, // Updated - was going to Web at 329
-  { num: '05', title: 'Advertising / SEM / SEO', page: 365 },
-  { num: '06', title: 'Web', page: 366 },
+  { num: '03', title: 'Technology', page: 210 },
+  { num: '04', title: 'Content', page: 244 },
+  { num: '05', title: 'Advertising', page: 269 },
+  { num: '06', title: 'Web', page: 329 },
   { num: '07', title: 'Events', page: 368 },
-  { num: '08', title: 'Public Relations', page: 391 },
-  { num: '09', title: 'Crisis Management', page: 418 }, // Updated - was 446
-  { num: '10', title: 'Production', page: 448 },
-  { num: '11', title: 'Fee', page: 467 },
-  { num: '12', title: 'Account Management', page: 485 },
-  { num: '13', title: 'Reporting & Analytics', page: 506 },
-  { num: '14', title: 'Team & Chem / Culture', page: 539 },
-  { num: '15', title: 'SME Representation (PR, Social, Strategy)', page: 541 },
-  { num: '16', title: 'Social Media', page: 569 },
-  { num: '17', title: 'Media Buying', page: 593 },
+  { num: '08', title: 'PR', page: 342 },
+  { num: '09', title: 'Crisis', page: 355 },
+  { num: '10', title: 'Production', page: 367 },
+  { num: '11', title: 'Fees', page: 388 },
+  { num: '12', title: 'Accounts', page: 398 },
+  { num: '13', title: 'Analytics', page: 408 },
+  { num: '14', title: 'Team', page: 423 },
+  { num: '15', title: 'SMEs', page: 435 },
+  { num: '16', title: 'Social', page: 558 },
+  { num: '17', title: 'Media', page: 578 },
 ];
+
+
+
+
+
+
   // Go to specific page function
   const goToPage = (page) => {
     setPdfPage(page);

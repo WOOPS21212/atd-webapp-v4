@@ -52,93 +52,31 @@ const PDFViewer = ({ pdfUrl, currentPage, onPageChange }) => {
   const thumbnailContainerRef = useRef(null);
   const [renderTask, setRenderTask] = useState(null);
   const [pageLinks, setPageLinks] = useState([]);
-  const overlayRef = useRef(null);
-  const [overlayReady, setOverlayReady] = useState(false);
-  const resizeObserverRef = useRef(null);
+
 
 // Table of Contents data - Updated with new sections and page numbers
 const tableOfContents = [
   { num: '01', title: 'Strategy', page: 151 },
   { num: '02', title: 'Innovation', page: 179 },
-  { num: '03', title: 'Technology', page: 244 },
-  { num: '04', title: 'Content', page: 290 }, // Updated - was going to Web at 329
-  { num: '05', title: 'Advertising / SEM / SEO', page: 365 },
-  { num: '06', title: 'Web', page: 366 },
+  { num: '03', title: 'Technology', page: 210 },
+  { num: '04', title: 'Content', page: 244 },
+  { num: '05', title: 'Advertising', page: 269 },
+  { num: '06', title: 'Web', page: 329 },
   { num: '07', title: 'Events', page: 368 },
-  { num: '08', title: 'Public Relations', page: 391 },
-  { num: '09', title: 'Crisis Management', page: 418 }, // Updated - was 446
-  { num: '10', title: 'Production', page: 448 },
-  { num: '11', title: 'Fee', page: 467 },
-  { num: '12', title: 'Account Management', page: 485 },
-  { num: '13', title: 'Reporting & Analytics', page: 506 },
-  { num: '14', title: 'Team & Chem / Culture', page: 539 },
-  { num: '15', title: 'SME Representation (PR, Social, Strategy)', page: 541 },
-  { num: '16', title: 'Social Media', page: 569 },
-  { num: '17', title: 'Media Buying', page: 593 },
+  { num: '08', title: 'PR', page: 342 },
+  { num: '09', title: 'Crisis', page: 355 },
+  { num: '10', title: 'Production', page: 367 },
+  { num: '11', title: 'Fees', page: 388 },
+  { num: '12', title: 'Accounts', page: 398 },
+  { num: '13', title: 'Analytics', page: 408 },
+  { num: '14', title: 'Team', page: 423 },
+  { num: '15', title: 'SMEs', page: 435 },
+  { num: '16', title: 'Social', page: 558 },
+  { num: '17', title: 'Media', page: 578 },
 ];
-  // Update overlay positions when canvas or container size changes
-  const updateOverlayPositions = useCallback(() => {
-    if (!canvasRef.current || !containerRef.current || pageLinks.length === 0) return;
 
-    // Get the current canvas position relative to its container
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    
-    // Get the actual rendered size of the canvas
-    const canvasRect = canvas.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    
-    // Calculate the offset of the canvas within its container
-    const offsetX = canvasRect.left - containerRect.left + container.scrollLeft;
-    const offsetY = canvasRect.top - containerRect.top + container.scrollTop;
-    
-    // Update the overlay container position
-    if (overlayRef.current) {
-      overlayRef.current.style.left = `${offsetX}px`;
-      overlayRef.current.style.top = `${offsetY}px`;
-      overlayRef.current.style.width = `${canvas.width}px`;
-      overlayRef.current.style.height = `${canvas.height}px`;
-    }
-  }, [pageLinks]);
 
-  // Set up ResizeObserver to watch for canvas size changes
-  useEffect(() => {
-    if (!canvasRef.current || !containerRef.current) return;
 
-    // Create ResizeObserver
-    resizeObserverRef.current = new ResizeObserver(() => {
-      updateOverlayPositions();
-    });
-
-    // Observe both canvas and container
-    resizeObserverRef.current.observe(canvasRef.current);
-    resizeObserverRef.current.observe(containerRef.current);
-
-    // Also listen for scroll events on the container
-    const container = containerRef.current;
-    const handleScroll = () => updateOverlayPositions();
-    container.addEventListener('scroll', handleScroll);
-
-    return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-      }
-      container.removeEventListener('scroll', handleScroll);
-    };
-  }, [updateOverlayPositions]);
-
-  // Update positions when links change
-  useEffect(() => {
-    if (pageLinks.length > 0) {
-      // Use setTimeout to ensure DOM has updated
-      setTimeout(() => {
-        updateOverlayPositions();
-        setOverlayReady(true);
-      }, 100);
-    } else {
-      setOverlayReady(false);
-    }
-  }, [pageLinks, updateOverlayPositions]);
 
   // Generate thumbnails for visible range around current page
   const generateVisibleThumbnails = useCallback(async () => {
@@ -276,7 +214,6 @@ const tableOfContents = [
 
       try {
         setPageLoading(true);
-        setOverlayReady(false);
         const page = await pdf.getPage(pageNumber);
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
@@ -306,21 +243,13 @@ const tableOfContents = [
               const linkType = getLinkType(annotation.url);
               const isVideo = isVideoLink(annotation.url);
               
-              // Convert PDF coordinates to canvas coordinates
-              const rect = annotation.rect;
-              const x = rect[0] * pageScale;
-              const y = (viewport.height - rect[3] * pageScale);
-              const width = (rect[2] - rect[0]) * pageScale;
-              const height = (rect[3] - rect[1]) * pageScale;
-              
               links.push({
                 id: `link-${index}`,
                 url: annotation.url,
                 type: linkType,
                 videoType: isVideo ? getVideoType(annotation.url) : null,
                 isVideo,
-                rect: { x, y, width, height },
-                tooltip: isVideo ? 'Click to play video' : 'Click to open link'
+                displayUrl: annotation.url.length > 50 ? annotation.url.substring(0, 50) + '...' : annotation.url
               });
             }
           });
@@ -444,9 +373,6 @@ const tableOfContents = [
         </div>
       </div>
 
-      {/* Table of Contents */}
-      {/* TOC section removed - sections should only appear at bottom */}
-
       {/* PDF Canvas with Zoom Controls */}
       <div className="pdf-canvas-wrapper">
         {/* Zoom Controls Overlay */}
@@ -465,58 +391,30 @@ const tableOfContents = [
             </div>
           )}
           <canvas ref={canvasRef} className="pdf-canvas" />
-          
-          {/* Links Overlay */}
-          {pageLinks.length > 0 && overlayReady && (
-            <div 
-              className="links-overlay" 
-              ref={overlayRef}
-              style={{
-                position: 'absolute',
-                pointerEvents: 'none',
-                opacity: overlayReady ? 1 : 0,
-                transition: 'opacity 0.3s ease'
-              }}
-            >
-              {pageLinks.map((link) => (
-                <div
-                  key={link.id}
-                  className={`link-overlay ${link.type}`}
-                  data-video-type={link.videoType}
-                  style={{
-                    position: 'absolute',
-                    left: `${link.rect.x}px`,
-                    top: `${link.rect.y}px`,
-                    width: `${link.rect.width}px`,
-                    height: `${link.rect.height}px`,
-                    pointerEvents: 'all'
-                  }}
-                  onClick={() => handleLinkClick(link)}
-                  title={link.tooltip}
-                >
-                  {link.isVideo && (
-                    <div className="video-play-overlay">
-                      <div className="play-button">
-                        <span className="play-icon">▶</span>
-                      </div>
-                      <div className="video-type-badge">
-                        {link.videoType === 'youtube' && '📺'}
-                        {link.videoType === 'vimeo' && '🎬'}
-                        {link.videoType === 'video-file' && '🎥'}
-                        {link.videoType === 'loom' && '🔗'}
-                        {link.videoType === 'wistia' && '💼'}
-                        {link.videoType === 'dailymotion' && '📺'}
-                        {link.videoType === 'video' && '📹'}
-                        {!link.videoType && '📹'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Page Links - Simple minimal display under PDF */}
+      {pageLinks.length > 0 && (
+        <div className="page-links">
+          <div className="page-links-header">Links on this page:</div>
+          <div className="page-links-list">
+            {pageLinks.map((link) => (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`page-link ${link.type}`}
+                title={link.url}
+              >
+                {link.isVideo && <span className="link-icon">🎥</span>}
+                {link.displayUrl}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Thumbnail Strip */}
       {showThumbnails && (
