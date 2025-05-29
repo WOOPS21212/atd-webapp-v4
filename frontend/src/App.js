@@ -49,6 +49,23 @@ You can:
 Not sure where to start? Just ask. I'll help you zero in on what matters most to you.`
 };
 
+// Typing Indicator Component
+const TypingIndicator = () => {
+  return (
+    <div className="assistant-message">
+      <strong>Ammunition Amy: </strong><br />
+      <div className="typing-indicator">
+        Amy is thinking
+        <div className="typing-dots">
+          <div className="dot"></div>
+          <div className="dot"></div>
+          <div className="dot"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [messages, setMessages] = useState([defaultAssistantMessage]);
   const [input, setInput] = useState('');
@@ -56,9 +73,10 @@ function App() {
   const [pdfPage, setPdfPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
   const sectionRef = useRef(null);
-  const pdfUrl = '/ATD_x_Ammunition_May Responses_Read-Ahead.pdf';
+  const pdfUrl = '/ATDxAmmunition_May-29-2025.pdf';
 
   // Table of Contents data
   const tableOfContents = [
@@ -119,7 +137,7 @@ function App() {
 
   useEffect(() => {
     debouncedScrollToBottom();
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -133,52 +151,61 @@ function App() {
     
     setMessages(updatedMessagesForApi);
     setInput('');
+    setIsTyping(true);
 
-    const response = await fetch(`${API_URL}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ threadId, messages: updatedMessagesForApi }),
-    });
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let fullMessage = '';
-    
-    const assistantMessageIndex = updatedMessagesForApi.length; 
-    setMessages((prevMessages) => [...prevMessages, { role: 'assistant', content: '...' }]);
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value); 
-      console.log('Received chunk:', chunk);
-      
-      if (chunk === '[DONE]') break;
-      fullMessage += chunk;
-
-      // Detect page mentions
-      const pageMentionRegex = /page\s+(\d+)/i;
-      const match = fullMessage.match(pageMentionRegex);
-      if (match) {
-        const pageNumber = parseInt(match[1]);
-        if (!isNaN(pageNumber) && pageNumber > 0) {
-          setPdfPage(pageNumber);
-        }
-      }
-
-      // Fix list formatting before updating the message
-      const formattedMessage = fixListFormatting(fullMessage);
-
-      setMessages((prevMessages) => {
-        const updated = [...prevMessages];
-        if (updated[assistantMessageIndex] && updated[assistantMessageIndex].role === 'assistant') {
-            updated[assistantMessageIndex] = {
-                role: 'assistant',
-                content: formattedMessage,
-            };
-        }
-        return updated;
+    try {
+      const response = await fetch(`${API_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId, messages: updatedMessagesForApi }),
       });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let fullMessage = '';
+      
+      const assistantMessageIndex = updatedMessagesForApi.length; 
+      setIsTyping(false);
+      setMessages((prevMessages) => [...prevMessages, { role: 'assistant', content: '...' }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value); 
+        console.log('Received chunk:', chunk);
+        
+        if (chunk === '[DONE]') break;
+        fullMessage += chunk;
+
+        // Detect page/slide mentions with enhanced regex
+        const pageMentionRegex = /\b(?:Slide|Page)\s+(\d{1,3})/i;
+        const match = fullMessage.match(pageMentionRegex);
+        if (match) {
+          const pageNumber = parseInt(match[1]);
+          if (!isNaN(pageNumber) && pageNumber > 0) {
+            setPdfPage(pageNumber);
+          }
+        }
+
+        // Fix list formatting and add highlighting before updating the message
+        let formattedMessage = fixListFormatting(fullMessage);
+        // Highlight slide/page references in assistant messages
+        formattedMessage = formattedMessage.replace(/\b((?:Slide|Page)\s+\d{1,3})\b/gi, '<span class="highlight-slide">$1</span>');
+
+        setMessages((prevMessages) => {
+          const updated = [...prevMessages];
+          if (updated[assistantMessageIndex] && updated[assistantMessageIndex].role === 'assistant') {
+              updated[assistantMessageIndex] = {
+                  role: 'assistant',
+                  content: formattedMessage,
+              };
+          }
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      setIsTyping(false);
     }
   };
 
@@ -197,52 +224,61 @@ function App() {
     const updatedMessagesForApi = [...messages, newUserMessage];
     
     setMessages(updatedMessagesForApi);
+    setIsTyping(true);
 
-    const response = await fetch(`${API_URL}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ threadId, messages: updatedMessagesForApi }),
-    });
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let fullMessage = '';
-    
-    const assistantMessageIndex = updatedMessagesForApi.length; 
-    setMessages((prevMessages) => [...prevMessages, { role: 'assistant', content: '...' }]);
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value); 
-      console.log('Received chunk:', chunk);
-      
-      if (chunk === '[DONE]') break;
-      fullMessage += chunk;
-
-      // Detect page mentions
-      const pageMentionRegex = /page\s+(\d+)/i;
-      const match = fullMessage.match(pageMentionRegex);
-      if (match) {
-        const pageNumber = parseInt(match[1]);
-        if (!isNaN(pageNumber) && pageNumber > 0) {
-          setPdfPage(pageNumber);
-        }
-      }
-
-      // Fix list formatting before updating the message
-      const formattedMessage = fixListFormatting(fullMessage);
-
-      setMessages((prevMessages) => {
-        const updated = [...prevMessages];
-        if (updated[assistantMessageIndex] && updated[assistantMessageIndex].role === 'assistant') {
-            updated[assistantMessageIndex] = {
-                role: 'assistant',
-                content: formattedMessage,
-            };
-        }
-        return updated;
+    try {
+      const response = await fetch(`${API_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId, messages: updatedMessagesForApi }),
       });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let fullMessage = '';
+      
+      const assistantMessageIndex = updatedMessagesForApi.length; 
+      setIsTyping(false);
+      setMessages((prevMessages) => [...prevMessages, { role: 'assistant', content: '...' }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value); 
+        console.log('Received chunk:', chunk);
+        
+        if (chunk === '[DONE]') break;
+        fullMessage += chunk;
+
+        // Detect page/slide mentions with enhanced regex
+        const pageMentionRegex = /\b(?:Slide|Page)\s+(\d{1,3})/i;
+        const match = fullMessage.match(pageMentionRegex);
+        if (match) {
+          const pageNumber = parseInt(match[1]);
+          if (!isNaN(pageNumber) && pageNumber > 0) {
+            setPdfPage(pageNumber);
+          }
+        }
+
+        // Fix list formatting and add highlighting before updating the message
+        let formattedMessage = fixListFormatting(fullMessage);
+        // Highlight slide/page references in assistant messages
+        formattedMessage = formattedMessage.replace(/\b((?:Slide|Page)\s+\d{1,3})\b/gi, '<span class="highlight-slide">$1</span>');
+
+        setMessages((prevMessages) => {
+          const updated = [...prevMessages];
+          if (updated[assistantMessageIndex] && updated[assistantMessageIndex].role === 'assistant') {
+              updated[assistantMessageIndex] = {
+                  role: 'assistant',
+                  content: formattedMessage,
+              };
+          }
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleQuestionSelect:', error);
+      setIsTyping(false);
     }
   };
 
@@ -350,7 +386,7 @@ function App() {
             <div className="chat-box">
               {messages.map((msg, index) => (
                 <div key={index} className={msg.role === 'user' ? 'user-message' : 'assistant-message'}>
-                  <strong>{msg.role === 'user' ? 'You' : 'Assistant'}: </strong><br />
+                  <strong>{msg.role === 'user' ? 'You' : 'Ammunition Amy'}: </strong><br />
                   {msg.role === 'assistant' ? (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -368,6 +404,7 @@ function App() {
                   )}
                 </div>
               ))}
+              {isTyping && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
             <form onSubmit={handleSubmit} className="input-row">
